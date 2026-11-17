@@ -1,0 +1,6 @@
+min_ca
+&cntrl
+imin=1, maxcyc=8000, ncyc=3500, drms=0.05,
+ ntb=1, cut=9.0, ntpr=100, ntxo=1,
+ ntr=1, restraint_wt=3.0, restraintmask=':1-418@CA',
+/

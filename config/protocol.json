@@ -1,0 +1,4 @@
+{
+  "pilot": {"seeds": [110003], "eq_ca_ps": 100, "eq_free_ps": 200, "segments": 1, "segment_ns": 0.2, "frame_ps": 2},
+  "full": {"seeds": [110003, 220009, 330017], "eq_ca_ps": 500, "eq_free_ps": 1500, "segments": 20, "segment_ns": 5, "frame_ps": 10}
+}

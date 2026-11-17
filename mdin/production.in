@@ -1,0 +1,7 @@
+Production NVT, one segment; parameters in uppercase are filled by the runner.
+&cntrl
+ imin=0, irest=1, ntx=5, ntb=1, ntp=0, ntc=2, ntf=2, cut=9.0,
+ ntt=3, gamma_ln=2.0, temp0=300.0, ig=SEED,
+ nstlim=STEPS, dt=0.002, ntpr=2500, ntwx=STRIDE, ntwr=50000,
+ ioutfm=1, ntxo=1, iwrap=0, ntr=0,
+/

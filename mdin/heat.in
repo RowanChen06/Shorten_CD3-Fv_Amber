@@ -1,0 +1,11 @@
+heat
+&cntrl
+imin=0, ntc=2, ntf=2, cut=9.0, ntt=3, gamma_ln=2.0, ig=SEED,
+ temp0=300.0, ntpr=500, ntwx=1000, ntwr=5000, ioutfm=1, ntxo=1, iwrap=0,
+ irest=0, ntx=1, ntb=1, ntp=0, tempi=10.0,
+ nstlim=50000, dt=0.001, ntr=1, nmropt=1,
+ restraint_wt=2.0, restraintmask=':1-418@CA',
+/
+&wt type='TEMP0', istep1=0, istep2=45000, value1=10.0, value2=300.0 /
+&wt type='TEMP0', istep1=45001, istep2=50000, value1=300.0, value2=300.0 /
+&wt type='END' /

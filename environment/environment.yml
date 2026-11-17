@@ -1,0 +1,12 @@
+name: cd3-md
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11
+  - ambertools>=24,<27
+  - parmed>=4
+  - numpy
+  - scipy
+  - netcdf4
+  - matplotlib-base

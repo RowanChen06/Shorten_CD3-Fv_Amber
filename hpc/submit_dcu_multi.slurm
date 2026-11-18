@@ -8,6 +8,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --output=cd3-dcu_multi-%j.out
 #SBATCH --export=ALL
+
 module purge
 source /public/home/aci37mn59u/apprepo/amber/26-dtk26.04_hx/seripts/env.sh
 
@@ -31,14 +32,3 @@ export SITE_ENV_LOADED="$job_env_file"
 printf '环境已加载；引擎：%s；MPI：%s\n' "$(command -v pmemd.hip.MPI)" "$MPI_TYPE"
 set -euo pipefail
 exec bash hpc/job_runner.sh dcu_multi "${1:-${PROFILE:-pilot}}" --env-ready
-
-
-
-export HSA_FORCE_FINE_GRAIN_PCIE=]
-export HIP_COMGR_ARCH=gfx936
-export ROCBLAS_GPU_ARCHNAME=gfx936
-export I_MPI_PMI LIBRARY=/opt/gridview/slurm-3. 1.0/lib/libpmi. so
-unlimited
-ulimit
-
-stun -npi-pnix r4 Dnend. hip.IFI -llorinallBos -0 -1 benchaark.in p bencimark. top -c benchnark. rst - benchnark. out t benchmark final. rst -s bencimark trai. nc

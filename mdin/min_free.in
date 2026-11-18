@@ -1,5 +1,0 @@
-min_free
-&cntrl
-imin=1, maxcyc=12000, ncyc=4000, drms=0.03,
- ntb=1, cut=9.0, ntpr=100, ntxo=1, ntr=0,
-/

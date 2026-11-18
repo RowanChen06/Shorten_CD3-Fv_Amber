@@ -2,11 +2,11 @@
 
 ## 调用关系
 
-每个 `submit_*.slurm` 只申请资源并调用一次 `job_runner.sh`。后者加载环境并启动一次 `run.sh`。`run.sh` 通过 `configure_engine.sh` 解析引擎，在每个动力学阶段调用 `launch_engine.sh`。单卡/单进程直接 exec 真实引擎；多卡/多进程由启动器调用一次 MPI 步骤。整个 Python/Bash 工作流不会被复制到每张卡。
+每个 `submit_*.slurm` 只调用一次 `job_runner.sh`。海光模板先在计算节点加载 `env_dcu_hx.sh`，再由 `job_runner.sh` 启动一次 `run.sh`；其他后端可由 `job_runner.sh` 加载 `SITE_ENV`。`run.sh` 通过 `configure_engine.sh` 解析引擎，在每个动力学阶段调用 `launch_engine.sh`。单卡/单进程直接 exec 真实引擎；多卡/多进程由启动器调用一次 MPI 步骤。整个 Python/Bash 工作流不会被复制到每张卡。
 
 ## 模板差异
 
-- `submit_dcu_single.slurm` / `submit_dcu_multi.slurm`：已填海光队列，默认加载 `env_dcu_hx.sh`，使用 HIP 引擎。
+- `submit_dcu_single.slurm` / `submit_dcu_multi.slurm`：已填海光队列，每次提交在计算节点加载 `env_dcu_hx.sh`，检查必需程序，再使用 HIP 引擎。
 - `submit_nvidia_single.slurm` / `submit_nvidia_multi.slurm`：使用 CUDA 引擎，分区和环境需按 NVIDIA 站点填写。
 - `submit_hip_single.slurm` / `submit_hip_multi.slurm`：供其他已部署 Amber HIP 的站点使用；未预设海光架构变量，资源名称和卡绑定需按站点适配。
 - `submit_cpu_serial.slurm` / `submit_cpu_mpi.slurm`：不申请加速卡；默认使用 sander / sander.MPI。可设置 ENGINE_BIN=pmemd 或 pmemd.MPI 切换对应 CPU 引擎。
@@ -17,7 +17,7 @@
 
 | 变量 | 作用 |
 |---|---|
-| SITE_ENV | 需要 source 的站点脚本。DCU 默认 env_dcu_hx.sh；其他模板不设置时继承提交环境 |
+| SITE_ENV | 需要 source 的站点脚本。海光提交模板默认 env_dcu_hx.sh（可覆盖）；其他模板不设置时继承提交环境 |
 | ENGINE_BIN | 提交模板中的真实引擎名称/路径覆盖；必须与模板类别和 MPI 模式一致 |
 | ENGINE | 手动调用 run.sh 时的真实引擎名称/路径；模板会主动选择，不沿用旧 ENGINE |
 | MPI_LAUNCHER | srun、mpirun 或 mpiexec，可为绝对路径；Slurm 作业默认 srun |

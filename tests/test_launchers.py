@@ -20,7 +20,7 @@ class LaunchTests(unittest.TestCase):
         self.env = {k: v for k, v in os.environ.items() if not k.startswith((
             "AMBER_", "SLURM_", "MPI_", "EXPECTED_", "ENGINE", "SITE_ENV", "RUN_ROOT", "PROFILE", "JOB_VARIANT"))}
         self.env.update(PATH=str(self.bin) + os.pathsep + os.environ["PATH"], TEST_LOG=str(self.log))
-        for name in ["sander", "sander.MPI", "pmemd", "pmemd.MPI", "pmemd.cuda", "pmemd.cuda.MPI",
+        for name in ["tleap", "cpptraj", "sander", "sander.MPI", "pmemd", "pmemd.MPI", "pmemd.cuda", "pmemd.cuda.MPI",
                      "pmemd.hip", "pmemd.hip.MPI", "pmemd.cuda_DPFP.MPI"]:
             self.write_exe(name, '''import json, os, sys
 from pathlib import Path
@@ -176,7 +176,9 @@ if len(sys.argv)>2 and sys.argv[2]=='replicas': print(3)
         (project / "config").mkdir()
         (project / "config/protocol.json").write_text("{}")
         site = self.base / "site env.sh"
-        site.write_text('export SITE_WAS_LOADED=yes\nexport MPI_TYPE=pmix_v4\ncd /\n')
+        site.write_text('which optional_hipcc_missing >/dev/null 2>&1\n'
+                        'export SITE_LOADS=$(( ${SITE_LOADS:-0} + 1 ))\n'
+                        'export SITE_WAS_LOADED=yes\nexport MPI_TYPE=pmix_v4\ncd /\n')
         (project / "run.sh").write_text('''#!/bin/bash
 set -euo pipefail
 if [[ $1 != analyse && $1 != analyze ]]; then source hpc/configure_engine.sh; configure_engine; fi
@@ -185,7 +187,7 @@ import json, os, sys
 with open(os.environ['TEST_LOG'],'a') as f:
     f.write(json.dumps({'kind':'workflow','mode':sys.argv[1],
        'engine':os.getenv('AMBER_ENGINE_REQUESTED'), 'root':os.getenv('RUN_ROOT'),
-       'site':os.getenv('SITE_WAS_LOADED'), 'profile':os.getenv('PROFILE')})+'\\n')
+       'site':os.getenv('SITE_WAS_LOADED'), 'site_loads':os.getenv('SITE_LOADS'), 'profile':os.getenv('PROFILE')})+'\\n')
 PYCODE
 ''')
         matrix = {"cpu_serial": (1, "sander"), "cpu_mpi": (8, "sander.MPI"),
@@ -204,7 +206,7 @@ PYCODE
                 self.assertEqual(proc.returncode, 0, proc.stderr)
                 calls = self.calls()
                 self.assertEqual([x['mode'] for x in calls], ['check', 'pilot'])
-                self.assertTrue(all(x['engine'] == engine and x['site'] == 'yes' for x in calls))
+                self.assertTrue(all(x['engine'] == engine and x['site'] == 'yes' and x['site_loads'] == '1' for x in calls))
                 self.assertEqual(calls[-1]['root'], str(project / f"runs/{variant}-{n}r"))
 
 

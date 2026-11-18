@@ -24,7 +24,14 @@ if [[ $job_variant == dcu_* && -z $job_env_file ]]; then job_env_file="$job_root
 if [[ -n $job_env_file ]]; then
     [[ $job_env_file == /* ]] || job_env_file="$job_root/$job_env_file"
     [[ -r $job_env_file ]] || { echo "环境脚本不可读：$job_env_file" >&2; exit 2; }
-    source "$job_env_file"
+    # 厂商环境脚本可能用 which 探测可选的 hipcc；其非零状态不应触发外层 errexit。
+    # 将 source 放在 if 条件中，加载结束后仍检查脚本的最终返回状态。
+    if source "$job_env_file"; then
+        :
+    else
+        echo "环境脚本加载失败：$job_env_file" >&2
+        exit 2
+    fi
     # 厂商环境可能改变工作目录，随后恢复项目根目录。
     cd -- "$job_root"
 fi

@@ -18,7 +18,7 @@
 
 ## 海光 hx1hdnormal 的已知配置
 
-`hpc/env_dcu_hx.sh` 保存用户示例中的内容：
+`hpc/env_dcu_hx.sh` 保存用户示例中的内容；单卡和多卡提交模板会在计算节点、开启 Bash 严格模式前各自加载一次，并检查必需可执行文件：
 
 ```bash
 module purge

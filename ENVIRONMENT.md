@@ -18,7 +18,7 @@
 
 ## 海光 hx1hdnormal 的已知配置
 
-`hpc/env_dcu_hx.sh` 保存用户示例中的内容；单卡和多卡提交模板会在计算节点、开启 Bash 严格模式前各自加载一次，并检查必需可执行文件：
+海光单卡和多卡提交模板直接采用根目录 `submit_dcu.slurm` 的环境设置，在计算节点、开启 Bash 严格模式前加载平台环境。`hpc/env_dcu_hx.sh` 保留为参考片段：
 
 ```bash
 module purge
@@ -31,7 +31,7 @@ ulimit -l unlimited
 export MPI_TYPE=pmix_v4
 ```
 
-此配置是站点专用信息，不能推断为所有海光卡或所有 HIP 平台通用要求。单卡用 pmemd.hip，多卡用 srun --mpi=pmix_v4 ... pmemd.hip.MPI；多卡模板默认 4 卡。若 ulimit 或环境加载失败，应查看原错误并按平台说明处理，不能将失败当作成功继续运行。
+此配置是站点专用信息，不能推断为所有海光卡或所有 HIP 平台通用要求。单卡用 pmemd.hip，多卡用 srun --mpi=pmix_v4 ... pmemd.hip.MPI；多卡模板默认 8 卡。若 ulimit 或环境加载失败，应查看原错误并按平台说明处理，不能将失败当作成功继续运行。
 
 ## Python/AmberTools 依赖
 
@@ -49,9 +49,9 @@ conda env create -f environment/environment.yml
 conda activate cd3-md
 ```
 
-然后按站点要求加载 GPU/DCU 引擎。Conda、Amber 自带 Python 和站点模块可能改变 PATH 或动态库搜索路径；最终必须在实际作业环境中运行 check，确认真实程序路径和依赖都正确。不要同时盲目叠加不同 DTK、CUDA 或 MPI 版本。当前工作流用 PATH 中的 python3。
+然后按站点要求加载 GPU/DCU 引擎。Conda、Amber 自带 Python 和站点模块可能改变 PATH 或动态库搜索路径；实际运行时，工作流的准备阶段会核对程序路径和 Python 依赖。不要同时盲目叠加不同 DTK、CUDA 或 MPI 版本。当前工作流用 PATH 中的 python3。
 
-需要持久化环境初始化时，创建自己的 site-env.sh，里面写入本机真实的 Conda 初始化/激活命令和站点 Amber 环境加载命令；用绝对路径通过 SITE_ENV 传入。DCU 使用自定义 SITE_ENV 后会替代默认 env_dcu_hx.sh，需在自定义脚本中 source 它或完整配置同等环境。
+需要持久化环境初始化时，创建自己的 site-env.sh，里面写入本机真实的 Conda 初始化/激活命令和站点 Amber 环境加载命令；用绝对路径通过 SITE_ENV 传入。海光简化模板不读取 SITE_ENV；需要添加 Conda 初始化或更换平台环境时，直接修改海光提交脚本中的环境段。
 
 ## NVIDIA、其他 HIP 与 CPU 平台
 

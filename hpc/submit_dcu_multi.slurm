@@ -9,18 +9,19 @@
 #SBATCH --output=cd3-dcu_multi-%j.out
 #SBATCH --export=ALL
 
-module purge
-source /public/home/aci37mn59u/apprepo/amber/26-dtk26.04_hx/seripts/env.sh
-
-
+set +eu
 cd -- "${SLURM_SUBMIT_DIR:?请从项目根目录提交}" || exit 2
 job_root=$PWD
 job_env_file=${SITE_ENV:-"$job_root/hpc/env_dcu_hx.sh"}
 [[ $job_env_file == /* ]] || job_env_file="$job_root/$job_env_file"
 [[ -r $job_env_file ]] || { echo "环境脚本不可读：$job_env_file" >&2; exit 2; }
 printf '加载海光站点环境：%s\n' "$job_env_file"
-set +eu
-source "$job_env_file"
+if source "$job_env_file"; then
+    :
+else
+    echo "环境脚本加载失败：$job_env_file" >&2
+    exit 2
+fi
 cd -- "$job_root" || exit 2
 
 

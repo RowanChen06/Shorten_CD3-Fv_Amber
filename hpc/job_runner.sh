@@ -18,22 +18,25 @@ case "$job_variant" in
     *) echo "未知模板类型：$job_variant" >&2; exit 2 ;;
 esac
 
-# 站点环境脚本先加载，之后再开启 nounset，兼容厂商初始化脚本中的可选变量。
-job_env_file=${SITE_ENV:-}
-if [[ $job_variant == dcu_* && -z $job_env_file ]]; then job_env_file="$job_root/hpc/env_dcu_hx.sh"; fi
-if [[ -n $job_env_file ]]; then
-    [[ $job_env_file == /* ]] || job_env_file="$job_root/$job_env_file"
-    [[ -r $job_env_file ]] || { echo "环境脚本不可读：$job_env_file" >&2; exit 2; }
-    # 厂商环境脚本可能用 which 探测可选的 hipcc；其非零状态不应触发外层 errexit。
-    # 将 source 放在 if 条件中，加载结束后仍检查脚本的最终返回状态。
-    if source "$job_env_file"; then
-        :
-    else
-        echo "环境脚本加载失败：$job_env_file" >&2
-        exit 2
+# 海光提交模板已经在计算节点加载环境；这里不再重复 module purge/source。
+# 其他后端仍可用 SITE_ENV 在本入口加载自己的站点环境。
+if [[ $job_variant == dcu_* ]]; then
+    [[ ${3:-} == --env-ready ]] || { echo "海光任务必须通过 submit_dcu_*.slurm 提交并先加载环境。" >&2; exit 2; }
+    job_env_file=${SITE_ENV_LOADED:-}
+    [[ -n $job_env_file && -r $job_env_file ]] || { echo "未记录已加载的海光环境脚本。" >&2; exit 2; }
+else
+    job_env_file=${SITE_ENV:-}
+    if [[ -n $job_env_file ]]; then
+        [[ $job_env_file == /* ]] || job_env_file="$job_root/$job_env_file"
+        [[ -r $job_env_file ]] || { echo "环境脚本不可读：$job_env_file" >&2; exit 2; }
+        if source "$job_env_file"; then
+            :
+        else
+            echo "环境脚本加载失败：$job_env_file" >&2
+            exit 2
+        fi
+        cd -- "$job_root"
     fi
-    # 厂商环境可能改变工作目录，随后恢复项目根目录。
-    cd -- "$job_root"
 fi
 set -euo pipefail
 export SITE_ENV_LOADED="$job_env_file"

@@ -6,33 +6,25 @@
 
 发布包不包含真实模拟轨迹。已完成 16 项启动/续跑回归测试、脚本语法检查和科学输入一致性检查；没有在真实 GPU/DCU 上运行 Amber。验证范围见 [VALIDATION.md](VALIDATION.md)。
 
-## 你当前海光平台：先运行四卡短测试
+## 你当前海光平台：直接运行完整模拟
 
 ```bash
 cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber_git
-# 如经 Windows 文件拷贝丢失执行权限，重新设置：
-chmod +x run.sh hpc/*.sh
-sha256sum -c PACKAGE_SHA256SUMS
-bash run.sh plan
-sbatch hpc/submit_dcu_multi.slurm pilot
+sbatch hpc/submit_dcu_multi.slurm
 ```
 
-海光模板已填写 `hx1hdnormal`、4 个 MPI 进程、4 张 DCU、每进程 16 个 Slurm CPU 配额，环境路径与架构设置来自你提供的示例。时限暂定 24 小时；该值须符合分区限制。脚本从提交目录定位项目根目录，仓库改名后仍须在此目录运行 `sbatch`。启动前的 `check` 会检查 AmberTools 与 Python 依赖，缺少依赖时停止。
+海光模板以根目录 `submit_dcu.slurm` 为准，直接加载平台环境并调用 `run.sh full`。默认 8 张 DCU、8 个 MPI 进程、每进程 16 个 CPU 配额，时限 24 小时。项目路径固定为上面的部署目录。
 
-查看作业日志 `cd3-dcu_multi-作业号.out`，以及 `runs/dcu_multi-4r/pilot/`。确认几何检查、轨迹分析及设备使用正常后，再提交：
+日志为 `cd3-dcu_multi-作业号.out`，正式结果为 `runs/dcu_multi-8r/full/`。不需要单独提交 check 作业。两份海光模板不读取位置参数；需要短模拟时，将脚本末行的 full 改为 pilot。
 
-```bash
-sbatch hpc/submit_dcu_multi.slurm full
-```
-
-详细操作见 [QUICKSTART_DCU.md](QUICKSTART_DCU.md)。正式配置为 **3 个独立重复 × 100 ns，每个重复 20 × 5 ns**。卡数不会改变轨迹条数或模拟物理时间。
+详细操作见 [QUICKSTART_DCU.md](QUICKSTART_DCU.md)。正式配置为 **3 个独立重复 × 100 ns，每个重复 20 × 5 ns**。是否能在一次作业时限内完成取决于实测速度。
 
 ## 提交模板一览
 
 | 用途 | 提交文件 | 默认动力学引擎 | 默认资源 |
 |---|---|---|---|
 | 海光 DCU 单卡 | `hpc/submit_dcu_single.slurm` | `pmemd.hip` | 1 卡、1 进程、16 CPU |
-| 海光 DCU 多卡 | `hpc/submit_dcu_multi.slurm` | `pmemd.hip.MPI` | 4 卡、4 进程、每进程 16 CPU |
+| 海光 DCU 多卡 | `hpc/submit_dcu_multi.slurm` | `pmemd.hip.MPI` | 8 卡、8 进程、每进程 16 CPU |
 | NVIDIA 单卡 | `hpc/submit_nvidia_single.slurm` | `pmemd.cuda` | 1 卡、1 进程、4 CPU |
 | NVIDIA 多卡 | `hpc/submit_nvidia_multi.slurm` | `pmemd.cuda.MPI` | 4 卡、4 进程、每进程 4 CPU |
 | CPU 单进程 | `hpc/submit_cpu_serial.slurm` | `sander` | 1 进程、1 CPU |
@@ -42,7 +34,7 @@ sbatch hpc/submit_dcu_multi.slurm full
 
 除海光模板外，分区是 `CHANGE_ME` 占位符，必须填入站点真实分区；GPU 资源名称、CPU/卡比例、账户、PMI 类型和设备绑定要求也以该站点为准。通用 HIP 模板没有写入海光的 `gfx936` 环境变量，不应直接把海光站点脚本用到其他硬件。
 
-各模板都支持 `pilot`、`full`、`check`、`analyse` 参数，默认 `pilot`。更详细的适配说明见 [hpc/README.md](hpc/README.md) 和 [ENVIRONMENT.md](ENVIRONMENT.md)。
+海光两份模板固定执行 `full`；其他模板支持 `pilot`、`full`、`check`、`analyse` 参数，默认 `pilot`。更详细的适配说明见 [hpc/README.md](hpc/README.md) 和 [ENVIRONMENT.md](ENVIRONMENT.md)。
 
 ## 统一运行入口
 
@@ -69,7 +61,7 @@ ENGINE=pmemd.hip bash run.sh pilot
 
 ## 输出目录、续跑与版本
 
-每种模板/进程数默认使用独立根目录，例如海光四卡为 `runs/dcu_multi-4r/full/`，海光单卡为 `runs/dcu_single-1r/full/`，NVIDIA 四卡为 `runs/nvidia_multi-4r/full/`。手动调用 run.sh 默认为 `runs/manual/`。可显式 `export RUN_ROOT=/共享工作盘/自定义目录` 覆盖；重新分析和续跑必须沿用同一个根目录。
+每种模板/进程数默认使用独立根目录，例如海光八卡为 `runs/dcu_multi-8r/full/`，海光单卡为 `runs/dcu_single-1r/full/`，NVIDIA 四卡为 `runs/nvidia_multi-4r/full/`。手动调用 run.sh 默认为 `runs/manual/`。海光模板需直接修改脚本中的 RUN_ROOT；其他模板可显式 `export RUN_ROOT=/共享工作盘/自定义目录` 覆盖；重新分析和续跑必须沿用同一个根目录。
 
 每个阶段只在进程成功、文件和检查点通过核验后写入 `complete.json`。重提同一命令会核验并跳过已完成段；中断段从上一个已完成段重算，**不能从中断段中间自动恢复**。同一结果目录的写锁阻止多个主流程并发写入。不要 `srun -n 4 bash run.sh full`，也不要用三份相同的 full 提交来模拟三个重复并行。
 
@@ -108,7 +100,7 @@ ENGINE=pmemd.hip bash run.sh pilot
 | 文件 | 用途 |
 |---|---|
 | `README.md` | 总入口：模型、模板、运行、结果和本文件索引。 |
-| `QUICKSTART_DCU.md` | 针对 hx1hdnormal 的单卡/四卡/改卡数、提交、监控、续跑和分析步骤。 |
+| `QUICKSTART_DCU.md` | 针对 hx1hdnormal 的单卡/八卡/改卡数、提交、监控、续跑和分析步骤。 |
 | `ENVIRONMENT.md` | 所需软件、站点环境加载、MPI 与设备绑定、依赖检查、时间/存储估算。 |
 | `CHANGELOG.md` | 本版变化、兼容范围与旧输出迁移说明。 |
 | `VALIDATION.md` | 实际验证范围、可复现测试命令与未验证部分。 |
@@ -120,7 +112,7 @@ ENGINE=pmemd.hip bash run.sh pilot
 | `hpc/README.md` | 各提交模板与公共启动器的关系、适配参数。 |
 | `hpc/configure_engine.sh` | 识别标准 Amber 引擎、检查类别与模板一致，并设置统一启动器。 |
 | `hpc/launch_engine.sh` | 单进程直接启动；MPI 用 srun/mpirun/mpiexec 启动当前 Amber 阶段。 |
-| `hpc/job_runner.sh` | 各 Slurm 模板共用作业主体，加载环境、确定输出根目录并启动一份 run.sh。 |
+| `hpc/job_runner.sh` | 其他后端 Slurm 模板共用作业主体，加载环境、确定输出根目录并启动一份 run.sh。 |
 | `hpc/env_dcu_hx.sh` | 用户提供的海光站点环境路径、gfx936 变量和 pmix_v4 设置。 |
 | `reference/output.cif` | 461 残基原始结构，作为结构变化参照。 |
 | `reference/SHA256SUMS` | 原始 CIF 校验和。 |
@@ -143,14 +135,14 @@ ENGINE=pmemd.hip bash run.sh pilot
 | `hpc/submit_cpu_mpi.slurm` | CPU MPI提交模板，调用 job_runner.sh。 |
 | `hpc/submit_nvidia_single.slurm` | NVIDIA 单卡提交模板，调用 job_runner.sh。 |
 | `hpc/submit_nvidia_multi.slurm` | NVIDIA 多卡提交模板，调用 job_runner.sh。 |
-| `hpc/submit_dcu_single.slurm` | 海光单卡提交模板，调用 job_runner.sh。 |
-| `hpc/submit_dcu_multi.slurm` | 海光多卡提交模板，调用 job_runner.sh。 |
+| `hpc/submit_dcu_single.slurm` | 海光单卡提交模板，直接调用 run.sh full。 |
+| `hpc/submit_dcu_multi.slurm` | 海光八卡提交模板，直接调用 run.sh full。 |
 | `hpc/submit_hip_single.slurm` | 通用 HIP 单卡提交模板，调用 job_runner.sh。 |
 | `hpc/submit_hip_multi.slurm` | 通用 HIP 多卡提交模板，调用 job_runner.sh。 |
 
 ## 结果从哪里看
 
-以下路径相对于 `$RUN_ROOT/full` 或 `$RUN_ROOT/pilot`。海光四卡默认根目录为 `runs/dcu_multi-4r`。rep01、prod001 分别表示第一个重复及第一个生产段。
+以下路径相对于 `$RUN_ROOT/full` 或 `$RUN_ROOT/pilot`。海光八卡默认根目录为 `runs/dcu_multi-8r`。rep01、prod001 分别表示第一个重复及第一个生产段。
 
 | 输出 | 用法 |
 |---|---|

@@ -69,5 +69,7 @@ export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
 export PYTHONUNBUFFERED=1
 printf 'Job=%s Host=%s Variant=%s Tasks=%s Mode=%s\n' "$SLURM_JOB_ID" "$(hostname)" "$job_variant" "$job_ranks" "$job_profile"
 printf 'ENGINE=%s RUN_ROOT=%s\n' "$ENGINE" "$RUN_ROOT"
-if [[ $job_profile != analyse && $job_profile != analyze && $job_profile != check ]]; then bash run.sh check; fi
+# pilot/full 直接进入模拟入口；run.sh 会在 prepare 阶段检查所需程序和依赖。
+# check 模式仍可按需手动提交，但不再作为 pilot/full 前的独立步骤。
+if [[ $job_profile == check ]]; then exec bash run.sh check; fi
 exec bash run.sh "$job_profile"

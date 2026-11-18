@@ -2,22 +2,22 @@
 
 ## 调用关系
 
-每个 `submit_*.slurm` 只调用一次 `job_runner.sh`。海光模板先在计算节点加载 `env_dcu_hx.sh`，再由 `job_runner.sh` 启动一次 `run.sh`；其他后端可由 `job_runner.sh` 加载 `SITE_ENV`。`run.sh` 通过 `configure_engine.sh` 解析引擎，在每个动力学阶段调用 `launch_engine.sh`。单卡/单进程直接 exec 真实引擎；多卡/多进程由启动器调用一次 MPI 步骤。整个 Python/Bash 工作流不会被复制到每张卡。
+海光单卡和多卡模板以根目录 `submit_dcu.slurm` 为准，直接加载平台环境并调用一次 `run.sh full`。其他后端通过 `job_runner.sh` 加载 `SITE_ENV` 并启动工作流。`run.sh` 通过 `configure_engine.sh` 解析引擎，在每个动力学阶段调用 `launch_engine.sh`。单卡/单进程直接 exec 真实引擎；多卡/多进程由启动器调用一次 MPI 步骤。整个 Python/Bash 工作流不会被复制到每张卡。
 
 ## 模板差异
 
-- `submit_dcu_single.slurm` / `submit_dcu_multi.slurm`：已填海光队列，每次提交在计算节点加载 `env_dcu_hx.sh`，检查必需程序，再使用 HIP 引擎。
+- `submit_dcu_single.slurm` / `submit_dcu_multi.slurm`：直接配置海光环境、项目路径和输出目录；默认单卡/八卡，固定执行 full，分别使用 pmemd.hip / pmemd.hip.MPI。
 - `submit_nvidia_single.slurm` / `submit_nvidia_multi.slurm`：使用 CUDA 引擎，分区和环境需按 NVIDIA 站点填写。
 - `submit_hip_single.slurm` / `submit_hip_multi.slurm`：供其他已部署 Amber HIP 的站点使用；未预设海光架构变量，资源名称和卡绑定需按站点适配。
 - `submit_cpu_serial.slurm` / `submit_cpu_mpi.slurm`：不申请加速卡；默认使用 sander / sander.MPI。可设置 ENGINE_BIN=pmemd 或 pmemd.MPI 切换对应 CPU 引擎。
 
-各模板默认运行 pilot。参数 full 启动正式模拟；analyse/analyze 只做分析；check 只检查环境。分析默认 full，可用 ANALYSIS_PROFILE=pilot 选择短测试。
+海光两份模板固定运行 full，不读取位置参数；若需 pilot，将最后一行改为 `exec bash run.sh pilot`。其他模板默认 pilot，支持 full、analyse/analyze 和 check。
 
 ## 环境变量
 
 | 变量 | 作用 |
 |---|---|
-| SITE_ENV | 需要 source 的站点脚本。海光提交模板默认 env_dcu_hx.sh（可覆盖）；其他模板不设置时继承提交环境 |
+| SITE_ENV | 需要 source 的站点脚本。仅其他后端读取；海光简化模板直接写入平台环境路径 |
 | ENGINE_BIN | 提交模板中的真实引擎名称/路径覆盖；必须与模板类别和 MPI 模式一致 |
 | ENGINE | 手动调用 run.sh 时的真实引擎名称/路径；模板会主动选择，不沿用旧 ENGINE |
 | MPI_LAUNCHER | srun、mpirun 或 mpiexec，可为绝对路径；Slurm 作业默认 srun |
@@ -35,13 +35,13 @@ MPI 模板按一进程一卡设置；切换卡数必须同步修改 --ntasks 和
 
 ## 改卡数和继续运行
 
-海光多卡模板默认 4 卡，可在 sbatch 中覆盖：
+海光多卡模板默认 8 卡，可在 sbatch 中覆盖：
 
 ```bash
-sbatch --ntasks=2 --gres=dcu:2 hpc/submit_dcu_multi.slurm pilot
+sbatch --ntasks=2 --ntasks-per-node=2 --gres=dcu:2 hpc/submit_dcu_multi.slurm
 ```
 
-同一种模板和进程数的默认 RUN_ROOT 固定，重提同一命令可以续跑。不同卡数默认不同目录。若需要换卡数继续同一条轨迹，先确认原作业已退出、引擎和软件版本兼容，再显式指定原 RUN_ROOT；不得同时写入同一目录。跨硬件/精度结果的浮点轨迹不保证逐帧相同。
+同一种模板和进程数的默认 RUN_ROOT 固定，重提同一命令可以续跑。不同卡数默认不同目录。海光脚本的 RUN_ROOT 为直接赋值，需在脚本内修改。若需要换卡数继续同一条轨迹，先确认原作业已退出、引擎和软件版本兼容，再指定原 RUN_ROOT；不得同时写入同一目录。跨硬件/精度结果的浮点轨迹不保证逐帧相同。
 
 不要把 `run.sh` 整体交给多进程 srun，也不要用 job array 直接启动三份相同 full。当前版本没有“每张卡各跑一个重复”的并发实现。
 

@@ -1,31 +1,41 @@
-#!/usr/bin/env bash
-#SBATCH --job-name=cd3-dcu_single
-#SBATCH --partition=hx1hdnormal
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#!/bin/bash
+#SBATCH -J cd3-dcu_single
+#SBATCH -p hx1hdnormal
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=1
+#SBATCH -c 16
 #SBATCH --gres=dcu:1
 #SBATCH --time=24:00:00
-#SBATCH --output=cd3-dcu_single-%j.out
-#SBATCH --export=ALL
-# 每次作业在计算节点重建海光环境，先 source，再启用严格模式。
-# 平台 env.sh 会探测可选的 hipcc；探测失败不应阻止预编译 Amber 的检查。
-cd -- "${SLURM_SUBMIT_DIR:?请从项目根目录提交}" || exit 2
-job_root=$PWD
-job_env_file=${SITE_ENV:-"$job_root/hpc/env_dcu_hx.sh"}
-[[ $job_env_file == /* ]] || job_env_file="$job_root/$job_env_file"
-[[ -r $job_env_file ]] || { echo "环境脚本不可读：$job_env_file" >&2; exit 2; }
-printf '加载海光站点环境：%s\n' "$job_env_file"
+#SBATCH -o cd3-dcu_single-%j.out
+
+# 加载平台环境，与提供的 Amber 示例一致
+# 环境初始化期间不因可选 hipcc 探测失败而提前退出
 set +eu
-source "$job_env_file"
-cd -- "$job_root" || exit 2
-# 与 amber.slurm 相同：默认环境设置 DTK、gfx936、PMI 和内存锁定上限。
-# 这里只检查必需程序；Python 包由 run.sh check 继续检查。
-export MPI_TYPE=${MPI_TYPE:-pmix_v4}
-for prog in tleap sander cpptraj python3 pmemd.hip; do
-    command -v "$prog" >/dev/null || { echo "海光环境缺少必需程序：$prog" >&2; exit 2; }
-done
-export SITE_ENV_LOADED="$job_env_file"
-printf '环境已加载；引擎：%s；MPI：%s\n' "$(command -v pmemd.hip)" "$MPI_TYPE"
+module purge
+source /public/home/aci37mn59u/apprepo/amber/26-dtk26.04_hx/scripts/env.sh
+
+export HSA_FORCE_FINE_GRAIN_PCIE=1
+export HIP_COMGR_ARCH=gfx936
+export ROCBLAS_GPU_ARCHNAME=gfx936
+export I_MPI_PMI_LIBRARY=/opt/gridview/slurm-3.1.0/lib/libpmi.so
+ulimit -l unlimited
+
+# 环境加载后，遇到工作流错误立即停止
 set -euo pipefail
-exec bash hpc/job_runner.sh dcu_single "${1:-${PROFILE:-pilot}}" --env-ready
+
+# 进入你的模拟项目
+cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber_git
+
+# 告诉项目内部启动器使用 HIP 单卡引擎
+export ENGINE=pmemd.hip
+export OMP_NUM_THREADS=1
+
+# 结果根目录；run.sh 会自动建立 full 子目录
+export RUN_ROOT="$PWD/runs/dcu_single-1r"
+
+# 项目内部需要直接执行这个启动器
+chmod +x hpc/launch_engine.sh
+
+# 一次启动完整流程：
+# 准备 → 建模 → 最小化 → 升温 → 平衡 → 生产 → 分析
+exec bash run.sh full

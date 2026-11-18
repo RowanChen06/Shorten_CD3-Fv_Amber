@@ -2,18 +2,18 @@
 
 适用已知站点：`hx1hdnormal`，平台 Amber 示例为 `26-dtk26.04_hx`。`hpc/env_dcu_hx.sh` 已写入用户提供的绝对路径和环境变量；若平台迁移安装位置，修改该文件。不要把这个文件直接用于 NVIDIA 或其他 HIP 架构。
 
-## 1. 上传并解压
+## 1. 进入已上传的仓库
 
-将 CD3_Fv_Amber_MultiBackend.zip 上传到计算节点可见的共享目录，在登录节点执行：
+当前平台的项目根目录如下。在登录节点从这里执行后面的提交命令：
 
 ```bash
-unzip CD3_Fv_Amber_MultiBackend.zip
-cd cd3_amber_multibackend
+cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber
 chmod +x run.sh hpc/*.sh
+sha256sum -c PACKAGE_SHA256SUMS
 bash run.sh plan
 ```
 
-包内所有代码使用 UTF-8、Linux LF 换行。不要把脚本保存为 Word 文件。
+如需在另一个位置重新获取仓库，可从 `https://github.com/RowanChen06/Shorten_CD3-Fv_Amber` 克隆，再进入名为 `Shorten_CD3-Fv_Amber` 的目录。脚本使用 UTF-8、Linux LF 换行。不要把脚本保存为 Word 文件。
 
 ## 2. 提交四卡短测试
 

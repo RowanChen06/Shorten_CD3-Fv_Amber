@@ -9,15 +9,15 @@
 ## 你当前海光平台：先运行四卡短测试
 
 ```bash
-unzip CD3_Fv_Amber_MultiBackend.zip
-cd cd3_amber_multibackend
+cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber
 # 如经 Windows 文件拷贝丢失执行权限，重新设置：
 chmod +x run.sh hpc/*.sh
+sha256sum -c PACKAGE_SHA256SUMS
 bash run.sh plan
 sbatch hpc/submit_dcu_multi.slurm pilot
 ```
 
-海光模板已填写 `hx1hdnormal`、4 个 MPI 进程、4 张 DCU、每进程 16 个 Slurm CPU 配额，环境路径与架构设置来自你提供的示例。时限暂定 24 小时；该值须符合分区限制。启动前的 `check` 会检查 AmberTools 与 Python 依赖，缺少依赖时停止。
+海光模板已填写 `hx1hdnormal`、4 个 MPI 进程、4 张 DCU、每进程 16 个 Slurm CPU 配额，环境路径与架构设置来自你提供的示例。时限暂定 24 小时；该值须符合分区限制。脚本从提交目录定位项目根目录，仓库改名后仍须在此目录运行 `sbatch`。启动前的 `check` 会检查 AmberTools 与 Python 依赖，缺少依赖时停止。
 
 查看作业日志 `cd3-dcu_multi-作业号.out`，以及 `runs/dcu_multi-4r/pilot/`。确认几何检查、轨迹分析及设备使用正常后，再提交：
 

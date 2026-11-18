@@ -9,7 +9,7 @@
 ## 你当前海光平台：先运行四卡短测试
 
 ```bash
-cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber
+cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber_git
 # 如经 Windows 文件拷贝丢失执行权限，重新设置：
 chmod +x run.sh hpc/*.sh
 sha256sum -c PACKAGE_SHA256SUMS

@@ -7,7 +7,7 @@
 当前平台的项目根目录如下。在登录节点从这里执行后面的提交命令：
 
 ```bash
-cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber
+cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber_git
 chmod +x run.sh hpc/*.sh
 sha256sum -c PACKAGE_SHA256SUMS
 bash run.sh plan
@@ -15,13 +15,21 @@ bash run.sh plan
 
 如需在另一个位置重新获取仓库，可从 `https://github.com/RowanChen06/Shorten_CD3-Fv_Amber` 克隆，再进入名为 `Shorten_CD3-Fv_Amber` 的目录。脚本使用 UTF-8、Linux LF 换行。不要把脚本保存为 Word 文件。
 
-## 2. 提交四卡短测试
+## 2. 提交环境检查与四卡短测试
+
+先检查计算节点环境（不启动模拟）：
+
+```bash
+sbatch hpc/submit_dcu_multi.slurm check
+```
+
+确认 `sacct` 为 `COMPLETED 0:0`，日志出现“环境已加载”、`Job=`、`Dynamics:` 和 `Programs:` 后，再提交短测试：
 
 ```bash
 sbatch hpc/submit_dcu_multi.slurm pilot
 ```
 
-默认 1 节点、4 DCU、4 MPI 进程、每进程 16 CPU 配额、24 小时。`job_runner.sh` 加载环境并执行 check，然后依次建模、CPU 最小化、四卡升温/平衡/生产、CPU 分析。每次动力学调用由 `srun --mpi=pmix_v4 ... pmemd.hip.MPI` 启动。
+默认 1 节点、4 DCU、4 MPI 进程、每进程 16 CPU 配额、24 小时。提交模板在计算节点加载环境，`job_runner.sh` 执行 check，然后依次建模、CPU 最小化、四卡升温/平衡/生产、CPU 分析。每次动力学调用由 `srun --mpi=pmix_v4 ... pmemd.hip.MPI` 启动。
 
 返回 `Submitted batch job 数字` 后，这个数字就是作业号。将下面示例的 123456 替换为实际作业号：
 

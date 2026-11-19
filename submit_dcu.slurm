@@ -14,6 +14,27 @@ set +eu
 module purge
 source /public/home/aci37mn59u/apprepo/amber/26-dtk26.04_hx/scripts/env.sh
 
+# 保存平台 MPI 的位置，避免 Conda 中的同名命令遮蔽它
+PLATFORM_MPIRUN="$(command -v mpirun)"
+if [[ -z "$PLATFORM_MPIRUN" ]]; then
+    echo "ERROR: 平台环境未提供 mpirun" >&2
+    exit 1
+fi
+PLATFORM_MPI_BIN="$(dirname "$PLATFORM_MPIRUN")"
+
+# 初始化并激活已有 AmberTools 环境
+if ! command -v conda >/dev/null 2>&1; then
+    echo "ERROR: 批处理环境找不到 conda。请先在登录节点执行 conda info --base，确认安装位置。" >&2
+    exit 1
+fi
+
+CONDA_BASE="$(conda info --base)" || exit 1
+source "$CONDA_BASE/etc/profile.d/conda.sh" || exit 1
+conda activate ambertools-25 || exit 1
+
+# 保持平台 MPI 命令优先
+export PATH="$PLATFORM_MPI_BIN:$PATH"
+
 export HSA_FORCE_FINE_GRAIN_PCIE=1
 export HIP_COMGR_ARCH=gfx936
 export ROCBLAS_GPU_ARCHNAME=gfx936
@@ -22,12 +43,32 @@ ulimit -l unlimited
 
 # 环境加载后，遇到工作流错误立即停止
 set -euo pipefail
+echo "===== AmberTools dependency check ====="
+echo "CONDA_PREFIX=${CONDA_PREFIX:-unset}"
+echo "AMBERHOME=${AMBERHOME:-unset}"
+
+for cmd in python tleap sander cpptraj mpirun srun; do
+    command -v "$cmd" || {
+        echo "ERROR: missing command: $cmd" >&2
+        exit 1
+    }
+done
+
+python - <<'PY'
+import sys
+import parmed
+import netCDF4
+
+print("Python:", sys.executable)
+print("ParmEd:", parmed.__file__)
+print("netCDF4:", netCDF4.__file__)
+PY
 
 # 进入你的模拟项目
 cd /public/home/aci37mn59u/CYX/Shorten_CD3-Fv_Amber_git
 
 # 告诉项目内部启动器使用 HIP 多卡引擎
-export ENGINE=pmemd.hip.MPI
+export ENGINE=/public/home/aci37mn59u/apprepo/amber/26-dtk26.04_hx/app/bin/pmemd.hip.MPI
 export MPI_LAUNCHER=srun
 export MPI_TYPE=pmix_v4
 export MPI_RANKS="$SLURM_NTASKS"

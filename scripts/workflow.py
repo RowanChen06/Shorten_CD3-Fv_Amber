@@ -1,4 +1,4 @@
-"""CD3 模拟工作流：由 run.sh 调用；本模块不负责选择显卡或自行启动多个主流程。"""
+"""CD3 模拟工作流：由 run.sh 调用"""
 import csv
 import hashlib
 import importlib
